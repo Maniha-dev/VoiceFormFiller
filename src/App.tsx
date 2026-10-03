@@ -7,7 +7,6 @@ import {getGuide} from './agents/guideAgent';
 import {startRecording,speak,type Rec} from './lib/audio';
 import {transcribe} from './lib/groq';
 import {exportPdf} from './lib/pdf';
-import {getKey} from './config';
 import type {AgentEvent,FieldValue,FormDefinition,LangCode} from './types';
 
 const LANGS:[LangCode,string][]=[['ur','اردو Urdu'],['pa','پنجابی Punjabi'],['ps','پښتو Pashto'],['sd','سنڌي Sindhi'],['roman-ur','Roman Urdu'],['en','English']];
@@ -46,7 +45,6 @@ export default function App(){
  async function finish(f:FormDefinition){setScreen('review');setGuide(null);const g=await getGuide(f);note('guide',`Prepared ${g.documents.length} documents`);setGuide(g)}
  async function advance(f:FormDefinition,v:Vals){const n=nextId(f,v);if(!n)return finish(f);await ask(f,n,v)}
  async function start(d:FormDefinition){
-  if(!getKey('gemini')){setToast('Gemini API key missing. Check .env and restart the Vite server.');return}
   skipped.current=new Set();setForm(d);setVals({});setLog([]);setSaid('');setScreen('fill');setBusy('working');
   try{await advance(d,{})}catch(e){err(e)}finally{setBusy('')}
  }
@@ -71,7 +69,6 @@ export default function App(){
   if(busy==='listening'){rec.current?.stop();return}
   if(busy)return;
   try{
-  if(!getKey('groq')){setToast('Groq API key missing. Check .env and restart the Vite server.');return}
    rec.current=await startRecording(setLevel);setBusy('listening');
    const blob=await rec.current.result;setBusy('working');
    const t=await transcribe(blob,lang);
@@ -97,8 +94,6 @@ export default function App(){
   </header>
   <div aria-live="polite" className="sr-only">{live}</div>
   {toast&&<div role="alert" className="m-3 p-3 rounded-xl bg-red-600 text-white flex justify-between"><span>{toast}</span><button onClick={()=>setToast('')}>OK</button></div>}
-  {(!getKey('gemini')||!getKey('groq'))&&<div className="m-3 p-3 rounded-xl bg-amber-100 text-amber-900">API configuration missing. Check the VITE_* values in .env and restart the Vite server.</div>}
-
   {screen==='home'&&<main className="max-w-3xl mx-auto p-6 text-center">
    <Mic className="mx-auto text-emerald-600" size={56}/><h1 className="text-3xl font-bold mt-3">Speak to Fill Any Form</h1>
    <p className="urdu text-xl mt-2" dir="rtl">جو پڑھ لکھ نہیں سکتا، وہ بول کر بھرے</p><p className="mt-1">Digital access for everyone who can speak.</p>

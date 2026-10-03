@@ -1,2 +1,7 @@
 import {defineConfig} from 'vite';import react from '@vitejs/plugin-react';
-export default defineConfig({plugins:[react()]});
+import {installLocalApi} from './server/vite-middleware.js';
+
+export default defineConfig({plugins:[react(),{
+ name:'local-server-api',
+ configureServer:installLocalApi
+}]});
