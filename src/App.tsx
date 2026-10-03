@@ -1,5 +1,5 @@
 import {useRef,useState} from 'react';
-import {Mic,Square,Settings,Download,Loader2,Trash2,Contrast} from 'lucide-react';
+import {Mic,Square,Download,Loader2,Trash2,Contrast} from 'lucide-react';
 import {DEMOS} from './data/demoForms';
 import {validate,errorMessage} from './agents/validatorAgent';
 import {askQuestion,extractAnswers} from './agents/interviewerAgent';
@@ -7,7 +7,7 @@ import {getGuide} from './agents/guideAgent';
 import {startRecording,speak,type Rec} from './lib/audio';
 import {transcribe} from './lib/groq';
 import {exportPdf} from './lib/pdf';
-import {getKey,setKey} from './config';
+import {getKey} from './config';
 import type {AgentEvent,FieldValue,FormDefinition,LangCode} from './types';
 
 const LANGS:[LangCode,string][]=[['ur','اردو Urdu'],['pa','پنجابی Punjabi'],['ps','پښتو Pashto'],['sd','سنڌي Sindhi'],['roman-ur','Roman Urdu'],['en','English']];
@@ -29,7 +29,6 @@ export default function App(){
  const[toast,setToast]=useState('');
  const[live,setLive]=useState('');
  const[flash,setFlash]=useState('');
- const[showSet,setShowSet]=useState(false);
  const[hc,setHc]=useState(false);
  const[fs,setFs]=useState(16);
  const[guide,setGuide]=useState<{documents:string[];tips:string[]}|null>(null);
@@ -47,7 +46,7 @@ export default function App(){
  async function finish(f:FormDefinition){setScreen('review');setGuide(null);const g=await getGuide(f);note('guide',`Prepared ${g.documents.length} documents`);setGuide(g)}
  async function advance(f:FormDefinition,v:Vals){const n=nextId(f,v);if(!n)return finish(f);await ask(f,n,v)}
  async function start(d:FormDefinition){
-  if(!getKey('gemini')){setToast('Missing Gemini API key. Open Settings (gear icon).');setShowSet(true);return}
+  if(!getKey('gemini')){setToast('Gemini API key missing. Check .env and restart the Vite server.');return}
   skipped.current=new Set();setForm(d);setVals({});setLog([]);setSaid('');setScreen('fill');setBusy('working');
   try{await advance(d,{})}catch(e){err(e)}finally{setBusy('')}
  }
@@ -72,7 +71,7 @@ export default function App(){
   if(busy==='listening'){rec.current?.stop();return}
   if(busy)return;
   try{
-   if(!getKey('groq')){setToast('Missing Groq API key. Open Settings.');setShowSet(true);return}
+  if(!getKey('groq')){setToast('Groq API key missing. Check .env and restart the Vite server.');return}
    rec.current=await startRecording(setLevel);setBusy('listening');
    const blob=await rec.current.result;setBusy('working');
    const t=await transcribe(blob,lang);
@@ -95,11 +94,10 @@ export default function App(){
    <select aria-label="Language" className="border rounded-xl p-2 min-h-[48px]" value={lang} onChange={e=>setLang(e.target.value as LangCode)}>{LANGS.map(([c,n])=><option key={c} value={c}>{n}</option>)}</select>
    <button aria-label="High contrast" className="p-3 border rounded-xl min-h-[48px]" onClick={()=>setHc(!hc)}><Contrast size={18}/></button>
    <button aria-label="Font size" className="px-3 border rounded-xl min-h-[48px]" onClick={()=>setFs(fs===16?19:fs===19?22:16)}>{fs===16?'A':fs===19?'A+':'A++'}</button>
-   <button aria-label="Settings" className="p-3 border rounded-xl min-h-[48px]" onClick={()=>setShowSet(true)}><Settings size={18}/></button>
   </header>
   <div aria-live="polite" className="sr-only">{live}</div>
   {toast&&<div role="alert" className="m-3 p-3 rounded-xl bg-red-600 text-white flex justify-between"><span>{toast}</span><button onClick={()=>setToast('')}>OK</button></div>}
-  {(!getKey('gemini')||!getKey('groq'))&&<div className="m-3 p-3 rounded-xl bg-amber-100 text-amber-900">API keys missing. <button className="underline font-semibold" onClick={()=>setShowSet(true)}>Open Settings</button></div>}
+  {(!getKey('gemini')||!getKey('groq'))&&<div className="m-3 p-3 rounded-xl bg-amber-100 text-amber-900">API configuration missing. Check the VITE_* values in .env and restart the Vite server.</div>}
 
   {screen==='home'&&<main className="max-w-3xl mx-auto p-6 text-center">
    <Mic className="mx-auto text-emerald-600" size={56}/><h1 className="text-3xl font-bold mt-3">Speak to Fill Any Form</h1>
@@ -139,9 +137,5 @@ export default function App(){
     <button className="px-6 border rounded-xl min-h-[48px]" onClick={clearAll}>Start new form</button>
     <button className="flex items-center gap-2 px-6 border rounded-xl min-h-[48px]" onClick={clearAll}><Trash2 size={18}/>Clear all data</button></div></main>}
 
-  {showSet&&<div className="fixed inset-0 bg-black/50 grid place-items-center p-4 z-20"><div className="bg-white text-slate-800 rounded-2xl p-5 w-full max-w-md space-y-3">
-   <b>Settings</b><p className="text-sm">Keys stay in this tab only (sessionStorage).</p>
-   {(['gemini','groq'] as const).map(k=><label key={k} className="block text-sm">{k==='gemini'?'Google Gemini key':'Groq key'}<input type="password" defaultValue={getKey(k)} onChange={e=>setKey(k,e.target.value)} className="w-full border rounded-xl p-3 min-h-[48px]"/></label>)}
-   <button className="w-full bg-emerald-600 text-white rounded-xl min-h-[48px]" onClick={()=>{setShowSet(false);setToast('')}}>Save</button></div></div>}
  </div>);
 }

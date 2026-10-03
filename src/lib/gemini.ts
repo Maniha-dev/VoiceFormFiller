@@ -6,7 +6,7 @@ export async function fetchRetry(url:string,init:RequestInit):Promise<Response>{
   try{
    const r=await fetch(url,{...init,signal:c.signal});
    if((r.status===429||r.status>=500)&&i===0){await sleep(1000);continue}
-   if(r.status===401||r.status===403)throw new Error('Invalid API key. Check Settings.');
+    if(r.status===401||r.status===403)throw new Error('Invalid Gemini API key. Check the VITE_GEMINI_API_KEY value in .env.');
    if(r.status===429)throw new Error('Please wait a few seconds and try again.');
    if(!r.ok)throw new Error('Request failed ('+r.status+')');
    return r;
@@ -17,7 +17,7 @@ export async function fetchRetry(url:string,init:RequestInit):Promise<Response>{
 }
 export type Part={text:string}|{inlineData:{mimeType:string;data:string}};
 export async function callGeminiJSON<T>(parts:Part[],system:string):Promise<T>{
- const key=getKey('gemini');if(!key)throw new Error('Missing Gemini API key. Open Settings.');
+ const key=getKey('gemini');if(!key)throw new Error('Missing Gemini API key. Check the VITE_GEMINI_API_KEY value in .env.');
  const url=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
  for(let i=0;i<2;i++){
   try{
