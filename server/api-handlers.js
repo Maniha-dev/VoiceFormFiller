@@ -1,7 +1,7 @@
 const MAX_GEMINI_BYTES = 1024 * 1024;
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 const RATE_WINDOW_MS = 60_000;
-const RATE_LIMITS = { gemini: 90, groq: 20 };
+const RATE_LIMITS = { gemini: 90, groq: 40, tts: 60 };
 const requestsByClient = new Map();
 
 class ApiError extends Error {
@@ -212,10 +212,85 @@ export async function handleGroq(req, res) {
   }
 }
 
+function wavFromPcm(pcm, rate = 24000) {
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0); header.writeUInt32LE(36 + pcm.length, 4); header.write('WAVEfmt ', 8);
+  header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(rate, 24); header.writeUInt32LE(rate * 2, 28); header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34); header.write('data', 36); header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
+
+// Text-to-speech via Gemini TTS: the assistant speaks questions aloud in the user's language.
+export async function handleTts(req, res) {
+  try {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return sendJson(res, 405, { error: 'Method not allowed.' });
+    }
+    if (!checkOrigin(req)) return sendJson(res, 403, { error: 'Cross-origin requests are not allowed.' });
+    if (isRateLimited(req, 'tts')) {
+      res.setHeader('Retry-After', '60');
+      return sendJson(res, 429, { error: 'Too many requests. Please wait and try again.' });
+    }
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return sendJson(res, 503, { error: 'Gemini is not configured on the server.' });
+    let input;
+    try {
+      input = JSON.parse((await readBody(req, 16 * 1024)).toString('utf8'));
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      return sendJson(res, 400, { error: 'Invalid JSON request.' });
+    }
+    const text = typeof input?.text === 'string' ? input.text.trim() : '';
+    if (!text || text.length > 600) return sendJson(res, 400, { error: 'Invalid speech request.' });
+
+    let response;
+    try {
+      const model = process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: process.env.GEMINI_TTS_VOICE || 'Kore' } } },
+          },
+        }),
+        signal: AbortSignal.timeout(25_000),
+      });
+    } catch {
+      return sendJson(res, 502, { error: 'Could not reach the speech service.' });
+    }
+    if (!response.ok) {
+      const failure = upstreamError(response.status);
+      return sendJson(res, failure.status, { error: failure.message });
+    }
+    let data;
+    try {
+      const body = await response.json();
+      data = body?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData)?.inlineData?.data;
+    } catch {
+      data = undefined;
+    }
+    if (typeof data !== 'string') return sendJson(res, 502, { error: 'The speech service returned no audio.' });
+    const wav = wavFromPcm(Buffer.from(data, 'base64'));
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return res.end(wav);
+  } catch (error) {
+    return safeFailure(res, error);
+  }
+}
+
 export function createApiMiddleware() {
   return (req, res, next) => {
     const pathname = new URL(req.url || '/', 'http://localhost').pathname;
     if (pathname === '/api/gemini') return handleGemini(req, res);
+    if (pathname === '/api/tts') return handleTts(req, res);
     if (pathname === '/api/groq/transcriptions') return handleGroq(req, res);
     return next();
   };
