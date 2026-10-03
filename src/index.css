@@ -1,0 +1,3 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+body{font-family:Inter,sans-serif}.urdu{font-family:'Noto Nastaliq Urdu',serif;line-height:2}
+.hc{filter:contrast(1.4)}.flash{animation:fl 1.2s}@keyframes fl{from{background:#fde047}to{background:transparent}}
