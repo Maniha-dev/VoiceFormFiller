@@ -1,4 +1,4 @@
-# Bol Kar Bharo
+# Awaz Desk
 Speak (Urdu, Punjabi, Pashto, Sindhi, Roman Urdu, English) to fill a form; export a PDF.
 ## Setup
 Use Node.js 20 or newer. Copy `.env.example` to `.env`, configure the server-only variables, then run `npm install && npm run dev`. The local Vite server mounts the same API handlers used by Vercel.

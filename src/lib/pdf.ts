@@ -3,7 +3,7 @@ import type {FormDefinition,FieldValue} from '../types';
 // Latin-only text: default jsPDF fonts cannot render Urdu script.
 export function exportPdf(form:FormDefinition,vals:Record<string,FieldValue>){
  const d=new jsPDF({unit:'mm',format:'a4'});const W=210;let y=0;
- const footer=()=>{d.setFontSize(8).setTextColor(100).setFont('helvetica','normal').text('Prepared with Bol Kar Bharo - please verify before submission',W/2,290,{align:'center'})};
+ const footer=()=>{d.setFontSize(8).setTextColor(100).setFont('helvetica','normal').text('Prepared with Awaz Desk - please verify before submission',W/2,290,{align:'center'})};
  d.setFillColor(5,150,105).rect(0,0,W,22,'F');d.setTextColor(255).setFont('helvetica','bold').setFontSize(16).text(form.title,12,14);
  d.setTextColor(0).setFontSize(9).setFont('helvetica','normal').text('Application Summary - generated '+new Date().toLocaleDateString('en-GB'),12,30);y=36;
  for(const f of form.fields){

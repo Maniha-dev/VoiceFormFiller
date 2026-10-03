@@ -87,7 +87,7 @@ export default function App(){
 
  return(<div className={(hc?'hc bg-black text-yellow-300 ':'bg-slate-50 text-slate-800 ')+'min-h-screen'} style={{fontSize:fs}}>
   <header className="flex flex-wrap items-center gap-2 p-3 bg-white/90 shadow sticky top-0 z-10 text-slate-800">
-   <b className="text-emerald-700 mr-auto">Bol Kar Bharo <span className="urdu">بول کر بھرو</span></b>
+   <b className="text-emerald-700 mr-auto">Awaz Desk <span className="urdu">آواز ڈیسک</span></b>
    <select aria-label="Language" className="border rounded-xl p-2 min-h-[48px]" value={lang} onChange={e=>setLang(e.target.value as LangCode)}>{LANGS.map(([c,n])=><option key={c} value={c}>{n}</option>)}</select>
    <button aria-label="High contrast" className="p-3 border rounded-xl min-h-[48px]" onClick={()=>setHc(!hc)}><Contrast size={18}/></button>
    <button aria-label="Font size" className="px-3 border rounded-xl min-h-[48px]" onClick={()=>setFs(fs===16?19:fs===19?22:16)}>{fs===16?'A':fs===19?'A+':'A++'}</button>
