@@ -14,4 +14,4 @@ For local use, `npm run dev` loads those variables from `.env` into the Vite ser
 ## Not yet built
 Upload flow (Reader Agent, pdfjs, image overlay), field-detection screen.
 ## Notes
-API keys in a browser app are visible to the user; use a serverless proxy in production. Urdu STT is not 100% accurate; typed input is always available.
+Provider credentials are read only by the server-side API handlers and are never entered in the application UI. Urdu STT is not 100% accurate; typed input is always available.
